@@ -249,15 +249,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓描画処理ここから
 		///
 
-		Novice::DrawTriangle(
-			static_cast<int>(screenVertices[0].x),
-			static_cast<int>(screenVertices[0].y),
-			static_cast<int>(screenVertices[1].x),
-			static_cast<int>(screenVertices[1].y),
-			static_cast<int>(screenVertices[2].x),
-			static_cast<int>(screenVertices[2].y),
-			RED, kFillModeSolid
-		);
+		if (((screenVertices[2] - screenVertices[0]).Cross(screenVertices[1] - screenVertices[0])).Dot(screenVertices[0]) <= 0.0f) {
+			Novice::DrawTriangle(
+				static_cast<int>(screenVertices[0].x),
+				static_cast<int>(screenVertices[0].y),
+				static_cast<int>(screenVertices[1].x),
+				static_cast<int>(screenVertices[1].y),
+				static_cast<int>(screenVertices[2].x),
+				static_cast<int>(screenVertices[2].y),
+				RED, kFillModeSolid
+			);
+		}
 
 		///
 		/// ↑描画処理ここまで
