@@ -5,7 +5,6 @@
 #include <iostream>
 #include <assert.h>
 #include <imgui.h>
-#include <algorithm>
 
 const char kWindowTitle[] = "LE2A_19_ヨシトダイキ_タイトル";
 static const int kRowHeight = 20;
@@ -33,6 +32,10 @@ struct Vector3 {
 		return { x / scalar, y / scalar, z / scalar };
 	}
 
+	float operator*(const Vector3& vector) const {
+		return x * vector.x + y * vector.y + z * vector.z;
+	}
+
 	Vector3 Cross(const Vector3& vector) const {
 		return { y * vector.z - z * vector.y, z * vector.x - x * vector.z, x * vector.y - y * vector.x };
 	}
@@ -45,18 +48,9 @@ struct Vector3 {
 		return std::sqrt(x * x + y * y + z * z);
 	}
 
-	float LengthSquared() const {
-		return x * x + y * y + z * z;
-	}
-
 	Vector3 Normalize() const {
 		float length = Length();
 		return { x / length, y / length, z / length };
-	}
-
-	Vector3 Project(const Vector3& vector) const {
-		Vector3 normalized = vector.Normalize();
-		return normalized * Dot(normalized);
 	}
 };
 
@@ -167,21 +161,6 @@ struct Sphere {
 	float radius; //!< 半径
 };
 
-struct Line {
-	Vector3 origin; //!< 始点
-	Vector3 diff; //!< 終点への差分ベクトル
-};
-
-struct Ray {
-	Vector3 origin; //!< 始点
-	Vector3 diff; //!< 終点への差分ベクトル
-};
-
-struct Segment {
-	Vector3 origin; //!< 始点
-	Vector3 diff; //!< 終点への差分ベクトル
-};
-
 void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label);
 void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label);
 
@@ -192,7 +171,6 @@ Matrix4x4 MakeRotateYMatrix(float radian);
 Matrix4x4 MakeRotateZMatrix(float radian);
 Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate);
 Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix);
-Vector3 ClosestPoint(const Vector3& point, const Segment& segment);
 
 Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip);
 Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip);
@@ -212,6 +190,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// キー入力結果を受け取る箱
 	char keys[256] = { 0 };
 	char preKeys[256] = { 0 };
+
+	Sphere sphere = {
+		{0.0f,0.0f,0.8f},
+		0.5f
+	};
 
 	Vector3 cameraPosition = { 0.0f,1.9f,-6.49f };
 	Vector3 cameraRotate = { 0.26f,0.0f,0.0f };
@@ -266,7 +249,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
 		ImGui::DragFloat3("Sphere center", &sphere[0].center.x, 0.01f);
 		ImGui::DragFloat("Sphere radius", &sphere[0].radius, 0.005f);
-
 		ImGui::End();
 #endif // _DEBUG
 
