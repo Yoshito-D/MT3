@@ -179,6 +179,8 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
+bool IsCollision(const Sphere& s1, const Sphere& s2);
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -200,6 +202,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 viewMatrix = cameraMatrix.Inverse();
 	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, kWindowWidth, kWindowHeight, 0.0f, 1.0f);
+
+	Sphere sphere[2];
+	sphere[0] = {
+		{0.0f,0.0f,0.0f},
+		0.5f
+	};
+
+	sphere[1] = {
+		{1.0f,1.0f,1.0f},
+		0.25f
+	};
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -227,14 +240,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		DrawGrid((viewMatrix * projectionMatrix), viewportMatrix);
-		DrawSphere(sphere, (viewMatrix * projectionMatrix), viewportMatrix, 0x222222ff);
+		DrawSphere(sphere[0], (viewMatrix * projectionMatrix), viewportMatrix, IsCollision(sphere[0], sphere[1]) ? RED : WHITE);
+		DrawSphere(sphere[1], (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
 
 #ifdef _DEBUG
 		ImGui::Begin("Window");
 		ImGui::DragFloat3("CameraTranslate", &cameraPosition.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
-		ImGui::DragFloat3("SphereCenter", &sphere.center.x, 0.01f);
-		ImGui::DragFloat("SphereRadius", &sphere.radius, 0.01f);
+		ImGui::DragFloat3("Sphere center", &sphere[0].center.x, 0.01f);
+		ImGui::DragFloat("Sphere radius", &sphere[0].radius, 0.005f);
 		ImGui::End();
 #endif // _DEBUG
 
@@ -443,7 +457,7 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 }
 
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
-	const uint32_t kSubdivision = 12;
+	const uint32_t kSubdivision = 16;
 	const float kLonEvery = 2.0f * static_cast<float>(M_PI) / static_cast<float>(kSubdivision);
 	const float kLatEvery = static_cast<float>(M_PI) / static_cast<float>(kSubdivision);
 
@@ -493,4 +507,19 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 			);
 		}
 	}
+}
+
+Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
+	Vector3 result = segment.origin + (point - segment.origin).Project(segment.diff);
+	return result;
+}
+
+bool IsCollision(const Sphere& s1, const Sphere& s2) {
+	float distance = (s1.center - s2.center).Length();
+
+	if (distance <= s1.radius + s2.radius) {
+		return true;
+	}
+
+	return false;
 }
