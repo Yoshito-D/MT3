@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <Novice.h>
 #include <cmath>
 #include <vector>
@@ -5,6 +6,11 @@
 #include <assert.h>
 
 const char kWindowTitle[] = "LE2A_19_ヨシトダイキ_タイトル";
+static const int kRowHeight = 20;
+static const int kColumnWidth = 60;
+
+static const float kWindowWidth = 1280.0f;
+static const float kWindowHeight = 720.0f;
 
 struct Vector3 {
 	float x, y, z;
@@ -27,6 +33,10 @@ struct Vector3 {
 
 	float operator*(const Vector3& vector) const {
 		return x * vector.x + y * vector.y + z * vector.z;
+	}
+
+	Vector3 Cross(const Vector3& vector) const {
+		return { y * vector.z - z * vector.y, z * vector.x - x * vector.z, x * vector.y - y * vector.x };
 	}
 
 	float Dot(const Vector3& vector) const {
@@ -106,9 +116,6 @@ struct Matrix4x4 {
 			det += (i % 2 == 0 ? 1 : -1) * mat.m[0][i] * subDet;
 		}
 
-		// 行列式が0の場合、エラーを表示してプログラムを終了
-		assert(det == 0);
-
 		// 各要素の余因子を計算して逆行列を求める
 		for (int i = 0; i < 4; ++i) {
 			for (int j = 0; j < 4; ++j) {
@@ -148,8 +155,6 @@ struct Matrix4x4 {
 	}
 };
 
-static const int kRowHeight = 20;
-static const int kColumnWidth = 60;
 void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label);
 void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label);
 
@@ -175,9 +180,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	char keys[256] = { 0 };
 	char preKeys[256] = { 0 };
 
-	Matrix4x4 orthographicMatrix = MakeOrthographicMatrix(-160.0f, 160.0f, 200.0f, 300.0f, 0.0f, 1000.0f);
-	Matrix4x4 perspectiveFovMatrix = MakePerspectiveFovMatrix(0.63f, 1.33f, 0.1f, 1000.0f);
-	Matrix4x4 viewportMatrix = MakeViewportMatrix(100.0f, 200.0f, 600.0f, 300.0f, 0.0f, 1.0f);
+	Vector3 scale = { 1.0f,1.0f,1.0f };
+	Vector3 rotate = { 0.0f,0.0f,0.0f };
+	Vector3 translate = { 640.0f,360.0f,200.0f };
+
+	const Vector3 kLocalVertices[3] = {
+		{0.0f,64.0f,0.0f},
+		{64.0f,-64.0f,0.0f},
+		{-64.0f,-64.0f,0.0f}
+	};
+
+	Vector3 screenVertices[3];
+
+	Matrix4x4 worldMatrix = MakeAffineMatrix(scale, rotate, translate);
+
+	Vector3 cameraPosition = { 640.0f,360.0f,-500.0f };
+	Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, cameraPosition);
+	Matrix4x4 viewMatrix = cameraMatrix.Inverse();
+	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
+	Matrix4x4 worldViewProjectionMatrix = worldMatrix * viewMatrix * projectionMatrix;
+	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, kWindowWidth, kWindowHeight, 0.0f, 1.0f);
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -192,6 +214,33 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		if (keys[DIK_W]) {
+			translate.z += 8.0f;
+		}
+
+		if (keys[DIK_S]) {
+			translate.z -= 8.0f;
+		}
+
+		if (keys[DIK_A]) {
+			translate.x -= 8.0f;
+		}
+
+		if (keys[DIK_D]) {
+			translate.x += 8.0f;
+		}
+
+		rotate.y += 1.0f / 60.0f * static_cast<float>(M_PI);
+
+		worldMatrix = MakeAffineMatrix(scale, rotate, translate);
+
+		worldViewProjectionMatrix = worldMatrix * viewMatrix * projectionMatrix;
+
+		for (uint32_t i = 0; i < 3; ++i) {
+			Vector3 ndcVertex = Transform(kLocalVertices[i], worldViewProjectionMatrix);
+			screenVertices[i] = Transform(ndcVertex, viewportMatrix);
+		}
+
 		///
 		/// ↑更新処理ここまで
 		///
@@ -200,9 +249,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓描画処理ここから
 		///
 
-		MatrixScreenPrintf(0, 0, orthographicMatrix, "orthographicMatrix");
-		MatrixScreenPrintf(0, kRowHeight * 5, perspectiveFovMatrix, "perspectiveFovMatrix");
-		MatrixScreenPrintf(0, kRowHeight * 5 * 2, viewportMatrix, "viewportMatrix");
+		Novice::DrawTriangle(
+			static_cast<int>(screenVertices[0].x),
+			static_cast<int>(screenVertices[0].y),
+			static_cast<int>(screenVertices[1].x),
+			static_cast<int>(screenVertices[1].y),
+			static_cast<int>(screenVertices[2].x),
+			static_cast<int>(screenVertices[2].y),
+			RED, kFillModeSolid
+		);
 
 		///
 		/// ↑描画処理ここまで
