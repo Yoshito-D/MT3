@@ -5,6 +5,7 @@
 #include <iostream>
 #include <assert.h>
 #include <imgui.h>
+#include <algorithm>
 
 const char kWindowTitle[] = "LE2A_19_ヨシトダイキ_タイトル";
 static const int kRowHeight = 20;
@@ -16,6 +17,10 @@ static const float kWindowHeight = 720.0f;
 struct Vector3 {
 	float x, y, z;
 
+	Vector3 operator-() const {
+		return { -x, -y, -z };
+	}
+
 	Vector3 operator+(const Vector3& vector) const {
 		return { x + vector.x, y + vector.y, z + vector.z };
 	}
@@ -24,16 +29,31 @@ struct Vector3 {
 		return { x - vector.x, y - vector.y, z - vector.z };
 	}
 
-	Vector3 operator*(float scalar) const {
+	Vector3 operator*(const Vector3& vector) const {
+		return { x * vector.x, y * vector.y, z * vector.z };
+	}
+
+	Vector3 operator*(const float& scalar) const {
 		return { x * scalar, y * scalar, z * scalar };
 	}
 
-	Vector3 operator/(float scalar) const {
+	Vector3 operator/(const float& scalar) const {
 		return { x / scalar, y / scalar, z / scalar };
 	}
 
-	float operator*(const Vector3& vector) const {
-		return x * vector.x + y * vector.y + z * vector.z;
+	Vector3& operator+=(const Vector3& other) {
+		x += other.x;
+		y += other.y;
+		z += other.z;
+		return *this;
+	}
+
+	// 減算（-=）
+	Vector3& operator-=(const Vector3& other) {
+		x -= other.x;
+		y -= other.y;
+		z -= other.z;
+		return *this;
 	}
 
 	Vector3 Cross(const Vector3& vector) const {
@@ -48,9 +68,25 @@ struct Vector3 {
 		return std::sqrt(x * x + y * y + z * z);
 	}
 
+	float LengthSquared() const {
+		return x * x + y * y + z * z;
+	}
+
 	Vector3 Normalize() const {
 		float length = Length();
 		return { x / length, y / length, z / length };
+	}
+
+	Vector3 Project(const Vector3& vector) const {
+		Vector3 normalized = vector.Normalize();
+		return normalized * Dot(normalized);
+	}
+
+	Vector3 Perpendicular() const {
+		if (x != 0.0f || y != 0.0f) {
+			return { -y,x,0.0f };
+		}
+		return { 0.0f,-z,y };
 	}
 };
 
@@ -161,6 +197,26 @@ struct Sphere {
 	float radius; //!< 半径
 };
 
+struct Line {
+	Vector3 origin; //!< 始点
+	Vector3 diff; //!< 終点への差分ベクトル
+};
+
+struct Plane {
+	Vector3 normal; //!< 法線
+	float distance; //!< 距離
+};
+
+struct Ray {
+	Vector3 origin; //!< 始点
+	Vector3 diff; //!< 終点への差分ベクトル
+};
+
+struct Segment {
+	Vector3 origin; //!< 始点
+	Vector3 diff; //!< 終点への差分ベクトル
+};
+
 void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label);
 void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label);
 
@@ -171,6 +227,7 @@ Matrix4x4 MakeRotateYMatrix(float radian);
 Matrix4x4 MakeRotateZMatrix(float radian);
 Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate);
 Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix);
+Vector3 ClosestPoint(const Vector3& point, const Segment& segment);
 
 Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip);
 Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip);
@@ -178,8 +235,10 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
 
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
-bool IsCollision(const Sphere& s1, const Sphere& s2);
+bool IsSphereCollidingWithSphere(const Sphere& s1, const Sphere& s2);
+bool IsSphereCollidingWithPlane(const Sphere& sphere, const Plane& plane);
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -191,28 +250,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	char keys[256] = { 0 };
 	char preKeys[256] = { 0 };
 
-	Sphere sphere = {
-		{0.0f,0.0f,0.8f},
-		0.5f
-	};
-
-	Vector3 cameraPosition = { 0.0f,1.9f,-6.49f };
+	Vector3 cameraScale = { 1.0f,1.0f,1.0f };
 	Vector3 cameraRotate = { 0.26f,0.0f,0.0f };
-	Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, cameraRotate, cameraPosition);
+	Vector3 cameraPosition = { 0.0f,1.9f,-6.49f };
+	Matrix4x4 cameraMatrix = MakeAffineMatrix(cameraScale, cameraRotate, cameraPosition);
 	Matrix4x4 viewMatrix = cameraMatrix.Inverse();
 	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, kWindowWidth, kWindowHeight, 0.0f, 1.0f);
 
-	Sphere sphere[2];
-	sphere[0] = {
+	Sphere sphere = {
 		{0.0f,0.0f,0.0f},
 		0.5f
 	};
 
-	sphere[1] = {
-		{1.0f,1.0f,1.0f},
-		0.25f
+	Plane plane{
+		{0.0f,1.0f,0.0f},
+		1.0f
 	};
+
+	bool isDebugCamera = true;
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -227,7 +283,38 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		cameraMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, cameraRotate, cameraPosition);
+		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE]) {
+			isDebugCamera = !isDebugCamera;
+		}
+
+		if (isDebugCamera && Novice::IsPressMouse(0)) {
+			ImVec2 delta = ImGui::GetIO().MouseDelta;
+			float moveSpeed = 0.005f;
+
+			Vector3 forward = { cosf(cameraRotate.x) * sinf(cameraRotate.y),
+				sinf(cameraRotate.x),
+				cosf(cameraRotate.x) * cosf(cameraRotate.y)
+			};
+
+			Vector3 up = { 0.0f,1.0f,0.0f };
+			Vector3 right = up.Cross(forward).Normalize();
+
+			Vector3 move = -right * delta.x * moveSpeed + up * delta.y * moveSpeed;
+
+			cameraPosition += move;
+		}
+
+		if (isDebugCamera && Novice::IsPressMouse(1)) {
+			ImVec2 delta = ImGui::GetIO().MouseDelta;
+			float rotateSpeed = 0.001f;
+
+			cameraRotate.x += delta.y * rotateSpeed;
+			cameraRotate.y += delta.x * rotateSpeed;
+		}
+
+		plane.normal = plane.normal.Normalize();
+
+		cameraMatrix = MakeAffineMatrix(cameraScale, cameraRotate, cameraPosition);
 		viewMatrix = cameraMatrix.Inverse();
 		projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
 
@@ -240,15 +327,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		DrawGrid((viewMatrix * projectionMatrix), viewportMatrix);
-		DrawSphere(sphere[0], (viewMatrix * projectionMatrix), viewportMatrix, IsCollision(sphere[0], sphere[1]) ? RED : WHITE);
-		DrawSphere(sphere[1], (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
+		DrawSphere(sphere, (viewMatrix * projectionMatrix), viewportMatrix, IsSphereCollidingWithPlane(sphere, plane) ? RED : WHITE);
+		DrawPlane(plane, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
 
 #ifdef _DEBUG
 		ImGui::Begin("Window");
-		ImGui::DragFloat3("CameraTranslate", &cameraPosition.x, 0.01f);
-		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
-		ImGui::DragFloat3("Sphere center", &sphere[0].center.x, 0.01f);
-		ImGui::DragFloat("Sphere radius", &sphere[0].radius, 0.005f);
+		ImGui::DragFloat3("Sphere center", &sphere.center.x, 0.01f);
+		ImGui::DragFloat("Sphere radius", &sphere.radius, 0.005f);
+		ImGui::DragFloat3("Plane normal", &plane.normal.x, 0.01f);
+		ImGui::DragFloat("Plane distance", &plane.distance, 0.005f);
+
 		ImGui::End();
 #endif // _DEBUG
 
@@ -509,15 +597,73 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 	}
 }
 
+void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Vector3 center = plane.normal * plane.distance;
+	Vector3 perpendiculars[4];
+	perpendiculars[0] = plane.normal.Perpendicular().Normalize();
+	perpendiculars[1] = { -perpendiculars[0].x,-perpendiculars[0].y,-perpendiculars[0].z };
+	perpendiculars[2] = plane.normal.Cross(perpendiculars[0]);
+	perpendiculars[3] = { -perpendiculars[2].x,-perpendiculars[2].y,-perpendiculars[2].z };
+
+	Vector3 points[4];
+	for (int32_t index = 0; index < 4; ++index) {
+		Vector3 extend = perpendiculars[index] * 2.0f;
+		Vector3 point = center + extend;
+		points[index] = Transform(Transform(point, viewProjectionMatrix), viewportMatrix);
+	}
+
+	Novice::DrawLine(
+		static_cast<int>(points[0].x),
+		static_cast<int>(points[0].y),
+		static_cast<int>(points[2].x),
+		static_cast<int>(points[2].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(points[1].x),
+		static_cast<int>(points[1].y),
+		static_cast<int>(points[3].x),
+		static_cast<int>(points[3].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(points[2].x),
+		static_cast<int>(points[2].y),
+		static_cast<int>(points[1].x),
+		static_cast<int>(points[1].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(points[3].x),
+		static_cast<int>(points[3].y),
+		static_cast<int>(points[0].x),
+		static_cast<int>(points[0].y),
+		color
+	);
+}
+
 Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
 	Vector3 result = segment.origin + (point - segment.origin).Project(segment.diff);
 	return result;
 }
 
-bool IsCollision(const Sphere& s1, const Sphere& s2) {
+bool IsSphereCollidingWithSphere(const Sphere& s1, const Sphere& s2) {
 	float distance = (s1.center - s2.center).Length();
 
 	if (distance <= s1.radius + s2.radius) {
+		return true;
+	}
+
+	return false;
+}
+
+bool IsSphereCollidingWithPlane(const Sphere& sphere, const Plane& plane) {
+	float distance = std::abs(plane.normal.Dot(sphere.center) - plane.distance);
+
+	if (distance <= sphere.radius) {
 		return true;
 	}
 
