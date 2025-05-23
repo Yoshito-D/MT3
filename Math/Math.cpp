@@ -314,6 +314,119 @@ void Draw::DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectio
 	);
 }
 
+void Draw::DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Vector3 vertices[8] = {
+		{ aabb.min.x, aabb.min.y, aabb.min.z },
+		{ aabb.min.x, aabb.min.y, aabb.max.z },
+		{ aabb.max.x, aabb.min.y, aabb.max.z },
+		{ aabb.max.x, aabb.min.y, aabb.min.z },
+		{ aabb.min.x, aabb.max.y, aabb.min.z },
+		{ aabb.min.x, aabb.max.y, aabb.max.z },
+		{ aabb.max.x, aabb.max.y, aabb.max.z },
+		{ aabb.max.x, aabb.max.y, aabb.min.z }
+	};
+
+	for (int32_t i = 0; i < 8; ++i) {
+		vertices[i] = Transform(Transform(vertices[i], viewProjectionMatrix), viewportMatrix);
+	}
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[0].x),
+		static_cast<int>(vertices[0].y),
+		static_cast<int>(vertices[1].x),
+		static_cast<int>(vertices[1].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[1].x),
+		static_cast<int>(vertices[1].y),
+		static_cast<int>(vertices[2].x),
+		static_cast<int>(vertices[2].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[2].x),
+		static_cast<int>(vertices[2].y),
+		static_cast<int>(vertices[3].x),
+		static_cast<int>(vertices[3].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[3].x),
+		static_cast<int>(vertices[3].y),
+		static_cast<int>(vertices[0].x),
+		static_cast<int>(vertices[0].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[4].x),
+		static_cast<int>(vertices[4].y),
+		static_cast<int>(vertices[5].x),
+		static_cast<int>(vertices[5].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[5].x),
+		static_cast<int>(vertices[5].y),
+		static_cast<int>(vertices[6].x),
+		static_cast<int>(vertices[6].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[6].x),
+		static_cast<int>(vertices[6].y),
+		static_cast<int>(vertices[7].x),
+		static_cast<int>(vertices[7].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[7].x),
+		static_cast<int>(vertices[7].y),
+		static_cast<int>(vertices[4].x),
+		static_cast<int>(vertices[4].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[0].x),
+		static_cast<int>(vertices[0].y),
+		static_cast<int>(vertices[4].x),
+		static_cast<int>(vertices[4].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[1].x),
+		static_cast<int>(vertices[1].y),
+		static_cast<int>(vertices[5].x),
+		static_cast<int>(vertices[5].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[2].x),
+		static_cast<int>(vertices[2].y),
+		static_cast<int>(vertices[6].x),
+		static_cast<int>(vertices[6].y),
+		color
+	);
+
+	Novice::DrawLine(
+		static_cast<int>(vertices[3].x),
+		static_cast<int>(vertices[3].y),
+		static_cast<int>(vertices[7].x),
+		static_cast<int>(vertices[7].y),
+		color
+	);
+}
+
 Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
 	Vector3 result = segment.origin + (point - segment.origin).Project(segment.diff);
 	return result;
@@ -455,5 +568,15 @@ bool Collision::isCollision(const Triangle& triangle, const Line& line) {
 	if (cross01.Dot(normal) >= 0.0f && cross12.Dot(normal) >= 0.0f && cross20.Dot(normal) >= 0.0f) {
 		return true;
 	}
+	return false;
+}
+
+bool Collision::isCollision(const AABB& aabb1, const AABB& aabb2) {
+	if ((aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x) &&
+		(aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) &&
+		(aabb1.min.z <= aabb2.max.z && aabb1.max.z >= aabb2.min.z)) {
+		return true;
+	}
+
 	return false;
 }
