@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include <Novice.h>
 #include <cmath>
 #include <imgui.h>
@@ -32,14 +33,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, kWindowWidth, kWindowHeight, 0.0f, 1.0f);
 
-	Segment segment{
-		{0.0f,0.0f,0.0f},
-		{1.0f,0.0f,1.0f}
-	};
+	AABB aabb1 = { { -0.5f,-0.5f,-0.5f },{ 0.0f,0.0f,0.0f } };
 
-	Triangle triangle{
-		{ {0.0f,1.0f,0.0f}, {1.0f,1.0f,0.0f}, {1.0f,2.0f,0.0f} }
-	};
+	aabb1.min.x = std::min(aabb1.min.x, aabb1.max.x);
+	aabb1.min.y = std::min(aabb1.min.y, aabb1.max.y);
+	aabb1.min.z = std::min(aabb1.min.z, aabb1.max.z);
+	aabb1.max.x = std::max(aabb1.min.x, aabb1.max.x);
+	aabb1.max.y = std::max(aabb1.min.y, aabb1.max.y);
+	aabb1.max.z = std::max(aabb1.min.z, aabb1.max.z);
+
+	AABB aabb2 = { { 0.2f,0.2f,0.2f },{ 1.0f,1.0f,1.0f } };
+
+	aabb2.min.x = std::min(aabb2.min.x, aabb2.max.x);
+	aabb2.min.y = std::min(aabb2.min.y, aabb2.max.y);
+	aabb2.min.z = std::min(aabb2.min.z, aabb2.max.z);
+	aabb2.max.x = std::max(aabb2.min.x, aabb2.max.x);
+	aabb2.max.y = std::max(aabb2.min.y, aabb2.max.y);
+	aabb2.max.z = std::max(aabb2.min.z, aabb2.max.z);
 
 	bool isDebugCamera = true;
 
@@ -89,6 +99,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 
+		aabb1.min.x = std::min(aabb1.min.x, aabb1.max.x);
+		aabb1.max.x = std::max(aabb1.min.x, aabb1.max.x);
+		aabb1.min.y = std::min(aabb1.min.y, aabb1.max.y);
+		aabb1.max.y = std::max(aabb1.min.y, aabb1.max.y);
+		aabb1.min.z = std::min(aabb1.min.z, aabb1.max.z);
+		aabb1.max.z = std::max(aabb1.min.z, aabb1.max.z);
+
+		aabb2.min.x = std::min(aabb2.min.x, aabb2.max.x);
+		aabb2.max.x = std::max(aabb2.min.x, aabb2.max.x);
+		aabb2.min.y = std::min(aabb2.min.y, aabb2.max.y);
+		aabb2.max.y = std::max(aabb2.min.y, aabb2.max.y);
+		aabb2.min.z = std::min(aabb2.min.z, aabb2.max.z);
+		aabb2.max.z = std::max(aabb2.min.z, aabb2.max.z);
+
 		cameraMatrix = MakeAffineMatrix(cameraScale, cameraRotate, cameraPosition);
 		viewMatrix = cameraMatrix.Inverse();
 		projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
@@ -102,18 +126,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		Draw::DrawGrid((viewMatrix * projectionMatrix), viewportMatrix);
-		Draw::DrawTriangle(triangle, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
-		Draw::DrawSegment(segment, (viewMatrix * projectionMatrix), viewportMatrix, Collision::isCollision(triangle, segment) ? RED : WHITE);
+		Draw::DrawAABB(aabb1, (viewMatrix * projectionMatrix), viewportMatrix, Collision::isCollision(aabb1, aabb2) ? RED : WHITE);
+		Draw::DrawAABB(aabb2, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
 
 		Novice::ScreenPrintf(0, 0, "DebugCamera %d", isDebugCamera);
 
 #ifdef _DEBUG
 		ImGui::Begin("Window");
-		ImGui::DragFloat3("Segment origin", &segment.origin.x, 0.005f);
-		ImGui::DragFloat3("Segment diff", &segment.diff.x, 0.005f);
-		ImGui::DragFloat3("vertex0", &triangle.vertices[0].x, 0.01f);
-		ImGui::DragFloat3("vertex1", &triangle.vertices[1].x, 0.01f);
-		ImGui::DragFloat3("vertex2", &triangle.vertices[2].x, 0.01f);
+		ImGui::DragFloat3("aabb1.min", &aabb1.min.x, 0.01f);
+		ImGui::DragFloat3("aabb1.max", &aabb1.max.x, 0.01f);
 
 		ImGui::End();
 #endif // _DEBUG
