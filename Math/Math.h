@@ -28,6 +28,10 @@ struct Segment {
 	Vector3 diff; //!< 終点への差分ベクトル
 };
 
+struct Triangle {
+	Vector3 vertices[3]; //!< 頂点
+};
+
 Matrix4x4 MakeTranslateMatrix(const Vector3& translate);
 Matrix4x4 MakeScaleMatrix(const Vector3& scale);
 Matrix4x4 MakeRotateXMatrix(float radian);
@@ -46,6 +50,7 @@ namespace Draw {
 	void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 	void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 	void DrawSegment(const Segment& segment, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+	void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 }
 
 namespace Collision {
@@ -55,4 +60,7 @@ namespace Collision {
 	bool isCollision(const Segment& segment, const Plane& plane);
 	bool isCollision(const Ray& ray, const Plane& plane);
 	bool isCollision(const Line& line, const Plane& plane);
+	bool isCollision(const Triangle& triangle, const Segment& segment);
+	bool isCollision(const Triangle& triangle, const Ray& ray);
+	bool isCollision(const Triangle& triangle, const Line& line);
 }

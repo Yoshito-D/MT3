@@ -286,6 +286,34 @@ void Draw::DrawSegment(const Segment& segment, const Matrix4x4& viewProjectionMa
 	);
 }
 
+void Draw::DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Vector3 a = Transform(Transform(triangle.vertices[0], viewProjectionMatrix), viewportMatrix);
+	Vector3 b = Transform(Transform(triangle.vertices[1], viewProjectionMatrix), viewportMatrix);
+	Vector3 c = Transform(Transform(triangle.vertices[2], viewProjectionMatrix), viewportMatrix);
+
+	Novice::DrawLine(
+		static_cast<int>(a.x),
+		static_cast<int>(a.y),
+		static_cast<int>(b.x),
+		static_cast<int>(b.y),
+		color
+	);
+	Novice::DrawLine(
+		static_cast<int>(b.x),
+		static_cast<int>(b.y),
+		static_cast<int>(c.x),
+		static_cast<int>(c.y),
+		color
+	);
+	Novice::DrawLine(
+		static_cast<int>(c.x),
+		static_cast<int>(c.y),
+		static_cast<int>(a.x),
+		static_cast<int>(a.y),
+		color
+	);
+}
+
 Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
 	Vector3 result = segment.origin + (point - segment.origin).Project(segment.diff);
 	return result;
@@ -351,4 +379,81 @@ bool Collision::isCollision(const Line& line, const Plane& plane) {
 	}
 
 	return true;
+}
+
+bool Collision::isCollision(const Triangle& triangle, const Segment& segment) {
+	Vector3 normal = (triangle.vertices[1] - triangle.vertices[0]).Cross(triangle.vertices[2] - triangle.vertices[0]);
+	normal.Normalize();
+
+	float dot = normal.Dot(segment.diff);
+
+	if (dot == 0.0f) {
+		return false;
+	}
+
+	float t = (triangle.vertices[0] - segment.origin).Dot(normal) / segment.diff.Dot(normal);
+	if (t < 0.0f || t > 1.0f) {
+		return false;
+	}
+
+	Vector3 p = segment.origin + segment.diff * t;
+
+	Vector3 cross01 = (triangle.vertices[0] - triangle.vertices[1]).Cross(triangle.vertices[1] - p);
+	Vector3 cross12 = (triangle.vertices[1] - triangle.vertices[2]).Cross(triangle.vertices[2] - p);
+	Vector3 cross20 = (triangle.vertices[2] - triangle.vertices[0]).Cross(triangle.vertices[0] - p);
+
+	if (cross01.Dot(normal) >= 0.0f && cross12.Dot(normal) >= 0.0f && cross20.Dot(normal) >= 0.0f) {
+		return true;
+	}
+
+	return false;
+}
+
+bool Collision::isCollision(const Triangle& triangle, const Ray& ray) {
+	Vector3 normal = (triangle.vertices[1] - triangle.vertices[0]).Cross(triangle.vertices[2] - triangle.vertices[0]);
+	normal.Normalize();
+
+	float dot = normal.Dot(ray.diff);
+
+	if (dot == 0.0f) {
+		return false;
+	}
+
+	float t = (triangle.vertices[0] - ray.origin).Dot(normal) / ray.diff.Dot(normal);
+	if (t < 0.0f) {
+		return false;
+	}
+
+	Vector3 p = ray.origin + ray.diff * t;
+	Vector3 cross01 = (triangle.vertices[0] - triangle.vertices[1]).Cross(triangle.vertices[1] - p);
+	Vector3 cross12 = (triangle.vertices[1] - triangle.vertices[2]).Cross(triangle.vertices[2] - p);
+	Vector3 cross20 = (triangle.vertices[2] - triangle.vertices[0]).Cross(triangle.vertices[0] - p);
+
+	if (cross01.Dot(normal) >= 0.0f && cross12.Dot(normal) >= 0.0f && cross20.Dot(normal) >= 0.0f) {
+		return true;
+	}
+
+	return false;
+}
+
+bool Collision::isCollision(const Triangle& triangle, const Line& line) {
+	Vector3 normal = (triangle.vertices[1] - triangle.vertices[0]).Cross(triangle.vertices[2] - triangle.vertices[0]);
+	normal.Normalize();
+
+	float dot = normal.Dot(line.diff);
+
+	if (dot == 0.0f) {
+		return false;
+	}
+
+	float t = (triangle.vertices[0] - line.origin).Dot(normal) / line.diff.Dot(normal);
+	Vector3 p = line.origin + line.diff * t;
+	Vector3 cross01 = (triangle.vertices[0] - triangle.vertices[1]).Cross(triangle.vertices[1] - p);
+	Vector3 cross12 = (triangle.vertices[1] - triangle.vertices[2]).Cross(triangle.vertices[2] - p);
+	Vector3 cross20 = (triangle.vertices[2] - triangle.vertices[0]).Cross(triangle.vertices[0] - p);
+
+	if (cross01.Dot(normal) >= 0.0f && cross12.Dot(normal) >= 0.0f && cross20.Dot(normal) >= 0.0f) {
+		return true;
+	}
+	return false;
 }

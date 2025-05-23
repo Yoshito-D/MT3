@@ -33,13 +33,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, kWindowWidth, kWindowHeight, 0.0f, 1.0f);
 
 	Segment segment{
-		{0.0f,1.0f,0.0f},
-		{1.0f,1.0f,0.0f}
+		{0.0f,0.0f,0.0f},
+		{1.0f,0.0f,1.0f}
 	};
 
-	Plane plane{
-		{0.0f,1.0f,0.0f},
-		1.0f
+	Triangle triangle{
+		{ {0.0f,1.0f,0.0f}, {1.0f,1.0f,0.0f}, {1.0f,2.0f,0.0f} }
 	};
 
 	bool isDebugCamera = true;
@@ -61,7 +60,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			isDebugCamera = !isDebugCamera;
 		}
 
-		if (isDebugCamera && Novice::IsPressMouse(0)) {
+		if (isDebugCamera && Novice::IsPressMouse(2)) {
 			ImVec2 delta = ImGui::GetIO().MouseDelta;
 			if (delta.x != 0.0f || delta.y != 0.0f) {
 				float moveSpeed = 0.005f;
@@ -90,8 +89,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 
-		plane.normal = plane.normal.Normalize();
-
 		cameraMatrix = MakeAffineMatrix(cameraScale, cameraRotate, cameraPosition);
 		viewMatrix = cameraMatrix.Inverse();
 		projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
@@ -105,17 +102,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		Draw::DrawGrid((viewMatrix * projectionMatrix), viewportMatrix);
-		Draw::DrawPlane(plane, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
-		Draw::DrawSegment(segment, (viewMatrix * projectionMatrix), viewportMatrix, Collision::isCollision(segment, plane) ? RED : WHITE);
+		Draw::DrawTriangle(triangle, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
+		Draw::DrawSegment(segment, (viewMatrix * projectionMatrix), viewportMatrix, Collision::isCollision(triangle, segment) ? RED : WHITE);
 
-		Novice::ScreenPrintf(0,0,"DebugCamera %d", isDebugCamera);
+		Novice::ScreenPrintf(0, 0, "DebugCamera %d", isDebugCamera);
 
 #ifdef _DEBUG
 		ImGui::Begin("Window");
 		ImGui::DragFloat3("Segment origin", &segment.origin.x, 0.005f);
 		ImGui::DragFloat3("Segment diff", &segment.diff.x, 0.005f);
-		ImGui::DragFloat3("Plane normal", &plane.normal.x, 0.01f);
-		ImGui::DragFloat("Plane distance", &plane.distance, 0.005f);
+		ImGui::DragFloat3("vertex0", &triangle.vertices[0].x, 0.01f);
+		ImGui::DragFloat3("vertex1", &triangle.vertices[1].x, 0.01f);
+		ImGui::DragFloat3("vertex2", &triangle.vertices[2].x, 0.01f);
 
 		ImGui::End();
 #endif // _DEBUG
