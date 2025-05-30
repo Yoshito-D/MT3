@@ -33,14 +33,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, kWindowWidth, kWindowHeight, 0.0f, 1.0f);
 
-	AABB aabb = { 
-		{ -0.5f,-0.5f,-0.5f },
-		{ 0.5f,0.5f,0.5f }
-	};
-
-	Segment segment = {
-		{-0.7f,0.3f,0.0f},
-		{2.0f,-0.5f,0.0f}
+	Vector3 controlPoints[3] = {
+		{-0.8f,0.58f,1.0f},
+		{1.76f,1.0f,-0.3f},
+		{0.94f,-0.7f,2.3f}
 	};
 
 	bool isDebugCamera = true;
@@ -62,41 +58,36 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			isDebugCamera = !isDebugCamera;
 		}
 
-		if (isDebugCamera && Novice::IsPressMouse(2)) {
-			ImVec2 delta = ImGui::GetIO().MouseDelta;
-			if (delta.x != 0.0f || delta.y != 0.0f) {
-				float moveSpeed = 0.005f;
+		if (isDebugCamera) {
+			if (Novice::IsPressMouse(2)) {
+				ImVec2 delta = ImGui::GetIO().MouseDelta;
+				if (delta.x != 0.0f || delta.y != 0.0f) {
+					float moveSpeed = 0.005f;
 
-				Vector3 forward = { cosf(cameraRotate.x) * sinf(cameraRotate.y),
-					sinf(cameraRotate.x),
-					cosf(cameraRotate.x) * cosf(cameraRotate.y)
-				};
+					Vector3 forward = { cosf(cameraRotate.x) * sinf(cameraRotate.y),
+						sinf(cameraRotate.x),
+						cosf(cameraRotate.x) * cosf(cameraRotate.y)
+					};
 
-				Vector3 up = { 0.0f,1.0f,0.0f };
-				Vector3 right = up.Cross(forward).Normalize();
+					Vector3 up = { 0.0f,1.0f,0.0f };
+					Vector3 right = up.Cross(forward).Normalize();
 
-				Vector3 move = -right * delta.x * moveSpeed + up * delta.y * moveSpeed;
+					Vector3 move = -right * delta.x * moveSpeed + up * delta.y * moveSpeed;
 
-				cameraPosition += move;
+					cameraPosition += move;
+				}
+			}
+
+			if (Novice::IsPressMouse(1)) {
+				ImVec2 delta = ImGui::GetIO().MouseDelta;
+				if (delta.x != 0.0f || delta.y != 0.0f) {
+					float rotateSpeed = 0.001f;
+
+					cameraRotate.x += delta.y * rotateSpeed;
+					cameraRotate.y += delta.x * rotateSpeed;
+				}
 			}
 		}
-
-		if (isDebugCamera && Novice::IsPressMouse(1)) {
-			ImVec2 delta = ImGui::GetIO().MouseDelta;
-			if (delta.x != 0.0f || delta.y != 0.0f) {
-				float rotateSpeed = 0.001f;
-
-				cameraRotate.x += delta.y * rotateSpeed;
-				cameraRotate.y += delta.x * rotateSpeed;
-			}
-		}
-
-		aabb.min.x = std::min(aabb.min.x, aabb.max.x);
-		aabb.min.y = std::min(aabb.min.y, aabb.max.y);
-		aabb.min.z = std::min(aabb.min.z, aabb.max.z);
-		aabb.max.x = std::max(aabb.min.x, aabb.max.x);
-		aabb.max.y = std::max(aabb.min.y, aabb.max.y);
-		aabb.max.z = std::max(aabb.min.z, aabb.max.z);
 
 		cameraMatrix = MakeAffineMatrix(cameraScale, cameraRotate, cameraPosition);
 		viewMatrix = cameraMatrix.Inverse();
@@ -111,17 +102,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		Draw::DrawGrid((viewMatrix * projectionMatrix), viewportMatrix);
-		Draw::DrawAABB(aabb, (viewMatrix * projectionMatrix), viewportMatrix, Collision::isCollision(aabb, segment) ? RED : WHITE);
-		Draw::DrawSegment(segment, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
+		Draw::DrawBezier(controlPoints[0], controlPoints[1], controlPoints[2], (viewMatrix * projectionMatrix), viewportMatrix, BLUE);
 
 		Novice::ScreenPrintf(0, 0, "DebugCamera %d", isDebugCamera);
 
 #ifdef _DEBUG
 		ImGui::Begin("Window");
-		ImGui::DragFloat3("aabb1.min", &aabb.min.x, 0.01f);
-		ImGui::DragFloat3("aabb1.max", &aabb.max.x, 0.01f);
-		ImGui::DragFloat3("segment.origin", &segment.origin.x, 0.01f);
-		ImGui::DragFloat3("segment.diff", &segment.diff.x, 0.01f);
+		ImGui::DragFloat3("controlPoint[0]", &controlPoints[0].x, 0.01f);
+		ImGui::DragFloat3("controlPoint[1]", &controlPoints[1].x, 0.01f);
+		ImGui::DragFloat3("controlPoint[2]", &controlPoints[2].x, 0.01f);
 		ImGui::End();
 #endif // _DEBUG
 
