@@ -71,4 +71,7 @@ namespace Collision {
 	bool isCollision(const Triangle& triangle, const Line& line);
 	bool isCollision(const AABB& aabb1, const AABB& aabb2);
 	bool isCollision(const AABB& aabb, const Sphere& sphere);
+	bool isCollision(const AABB& aabb, const Segment& segment);
+	bool isCollision(const AABB& aabb, const Ray& ray);
+	bool isCollision(const AABB& aabb, const Line& line);
 }
