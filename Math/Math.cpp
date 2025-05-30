@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "Math.h"
 #include <cmath>
 #include <Novice.h>
@@ -597,3 +598,127 @@ bool Collision::isCollision(const AABB& aabb, const Sphere& sphere) {
 
 	return false;
 }
+
+bool Collision::isCollision(const AABB& aabb, const Segment& segment) {
+	float tMin = -INFINITY;
+	float tMax = INFINITY;
+
+	// X軸
+	if (segment.diff.x != 0.0f) {
+		float t1 = (aabb.min.x - segment.origin.x) / segment.diff.x;
+		float t2 = (aabb.max.x - segment.origin.x) / segment.diff.x;
+		tMin = std::max(tMin, std::min(t1, t2));
+		tMax = std::min(tMax, std::max(t1, t2));
+	} else if (segment.origin.x < aabb.min.x || segment.origin.x > aabb.max.x) {
+		return false;
+	}
+
+	// Y軸
+	if (segment.diff.y != 0.0f) {
+		float t1 = (aabb.min.y - segment.origin.y) / segment.diff.y;
+		float t2 = (aabb.max.y - segment.origin.y) / segment.diff.y;
+		tMin = std::max(tMin, std::min(t1, t2));
+		tMax = std::min(tMax, std::max(t1, t2));
+	} else if (segment.origin.y < aabb.min.y || segment.origin.y > aabb.max.y) {
+		return false;
+	}
+
+	// Z軸
+	if (segment.diff.z != 0.0f) {
+		float t1 = (aabb.min.z - segment.origin.z) / segment.diff.z;
+		float t2 = (aabb.max.z - segment.origin.z) / segment.diff.z;
+		tMin = std::max(tMin, std::min(t1, t2));
+		tMax = std::min(tMax, std::max(t1, t2));
+	} else if (segment.origin.z < aabb.min.z || segment.origin.z > aabb.max.z) {
+		return false;
+	}
+
+	if (tMin > tMax) {
+		return false;
+	}
+
+	return tMax >= 0.0f && tMin <= 1.0f;
+}
+
+bool Collision::isCollision(const AABB& aabb, const Ray& ray) {
+	float tMin = -INFINITY;
+	float tMax = INFINITY;
+	// X軸
+
+	if (ray.diff.x != 0.0f) {
+		float t1 = (aabb.min.x - ray.origin.x) / ray.diff.x;
+		float t2 = (aabb.max.x - ray.origin.x) / ray.diff.x;
+		tMin = std::max(tMin, std::min(t1, t2));
+		tMax = std::min(tMax, std::max(t1, t2));
+	} else if (ray.origin.x < aabb.min.x || ray.origin.x > aabb.max.x) {
+		return false;
+	}
+
+	// Y軸
+	if (ray.diff.y != 0.0f) {
+		float t1 = (aabb.min.y - ray.origin.y) / ray.diff.y;
+		float t2 = (aabb.max.y - ray.origin.y) / ray.diff.y;
+		tMin = std::max(tMin, std::min(t1, t2));
+		tMax = std::min(tMax, std::max(t1, t2));
+	} else if (ray.origin.y < aabb.min.y || ray.origin.y > aabb.max.y) {
+		return false;
+	}
+
+	// Z軸
+	if (ray.diff.z != 0.0f) {
+		float t1 = (aabb.min.z - ray.origin.z) / ray.diff.z;
+		float t2 = (aabb.max.z - ray.origin.z) / ray.diff.z;
+		tMin = std::max(tMin, std::min(t1, t2));
+		tMax = std::min(tMax, std::max(t1, t2));
+	} else if (ray.origin.z < aabb.min.z || ray.origin.z > aabb.max.z) {
+		return false;
+	}
+
+	if (tMin > tMax) {
+		return false;
+	}
+
+	return tMax >= 0.0f;
+}
+
+bool Collision::isCollision(const AABB& aabb, const Line& line) {
+	float tMin = -INFINITY;
+	float tMax = INFINITY;
+
+	// X軸
+	if (line.diff.x != 0.0f) {
+		float t1 = (aabb.min.x - line.origin.x) / line.diff.x;
+		float t2 = (aabb.max.x - line.origin.x) / line.diff.x;
+		tMin = std::max(tMin, std::min(t1, t2));
+		tMax = std::min(tMax, std::max(t1, t2));
+	} else if (line.origin.x < aabb.min.x || line.origin.x > aabb.max.x) {
+		return false;
+	}
+
+	// Y軸
+	if (line.diff.y != 0.0f) {
+		float t1 = (aabb.min.y - line.origin.y) / line.diff.y;
+		float t2 = (aabb.max.y - line.origin.y) / line.diff.y;
+		tMin = std::max(tMin, std::min(t1, t2));
+		tMax = std::min(tMax, std::max(t1, t2));
+	} else if (line.origin.y < aabb.min.y || line.origin.y > aabb.max.y) {
+		return false;
+	}
+
+	// Z軸
+	if (line.diff.z != 0.0f) {
+		float t1 = (aabb.min.z - line.origin.z) / line.diff.z;
+		float t2 = (aabb.max.z - line.origin.z) / line.diff.z;
+		tMin = std::max(tMin, std::min(t1, t2));
+		tMax = std::min(tMax, std::max(t1, t2));
+	} else if (line.origin.z < aabb.min.z || line.origin.z > aabb.max.z) {
+		return false;
+	}
+
+	if (tMin > tMax) {
+		return false;
+	}
+
+	return true;
+}
+

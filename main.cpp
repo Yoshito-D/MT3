@@ -33,9 +33,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, kWindowWidth, kWindowHeight, 0.0f, 1.0f);
 
-	AABB aabb = { { -0.5f,-0.5f,-0.5f },{ 0.0f,0.0f,0.0f } };
+	AABB aabb = { 
+		{ -0.5f,-0.5f,-0.5f },
+		{ 0.5f,0.5f,0.5f }
+	};
 
-	Sphere sphere = { { 1.0f,1.0f,1.0f }, 1.0f };
+	Segment segment = {
+		{-0.7f,0.3f,0.0f},
+		{2.0f,-0.5f,0.0f}
+	};
 
 	bool isDebugCamera = true;
 
@@ -105,8 +111,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		Draw::DrawGrid((viewMatrix * projectionMatrix), viewportMatrix);
-		Draw::DrawAABB(aabb, (viewMatrix * projectionMatrix), viewportMatrix, Collision::isCollision(aabb, sphere) ? RED : WHITE);
-		Draw::DrawSphere(sphere, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
+		Draw::DrawAABB(aabb, (viewMatrix * projectionMatrix), viewportMatrix, Collision::isCollision(aabb, segment) ? RED : WHITE);
+		Draw::DrawSegment(segment, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
 
 		Novice::ScreenPrintf(0, 0, "DebugCamera %d", isDebugCamera);
 
@@ -114,8 +120,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::Begin("Window");
 		ImGui::DragFloat3("aabb1.min", &aabb.min.x, 0.01f);
 		ImGui::DragFloat3("aabb1.max", &aabb.max.x, 0.01f);
-		ImGui::DragFloat3("sphere.center", &sphere.center.x, 0.01f);
-		ImGui::DragFloat("sphere.radius", &sphere.radius, 0.01f);
+		ImGui::DragFloat3("segment.origin", &segment.origin.x, 0.01f);
+		ImGui::DragFloat3("segment.diff", &segment.diff.x, 0.01f);
 		ImGui::End();
 #endif // _DEBUG
 
