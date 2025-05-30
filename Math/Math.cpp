@@ -117,6 +117,14 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
 	return result;
 }
 
+Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) {
+	Vector3 result;
+	result.x = v1.x + (v2.x - v1.x) * t;
+	result.y = v1.y + (v2.y - v1.y) * t;
+	result.z = v1.z + (v2.z - v1.z) * t;
+	return result;
+}
+
 void Draw::DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
 	const float kGridHalfWidth = 2.0f;
 	const uint32_t kSubdivision = 10;
@@ -427,6 +435,25 @@ void Draw::DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, con
 		static_cast<int>(vertices[7].y),
 		color
 	);
+}
+
+void Draw::DrawBezier(const Vector3& controlPoint0, const Vector3& contorlPoint1, const Vector3& contorlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	const int32_t kSubdivision = 100;
+	for (int32_t i = 0; i < kSubdivision; ++i) {
+		float t0 = static_cast<float>(i) / static_cast<float>(kSubdivision);
+		float t1 = static_cast<float>(i + 1) / static_cast<float>(kSubdivision);
+		Vector3 p0 = controlPoint0 * (1.0f - t0) * (1.0f - t0) + contorlPoint1 * 2.0f * (1.0f - t0) * t0 + contorlPoint2 * t0 * t0;
+		Vector3 p1 = controlPoint0 * (1.0f - t1) * (1.0f - t1) + contorlPoint1 * 2.0f * (1.0f - t1) * t1 + contorlPoint2 * t1 * t1;
+		p0 = Transform(Transform(p0, viewProjectionMatrix), viewportMatrix);
+		p1 = Transform(Transform(p1, viewProjectionMatrix), viewportMatrix);
+		Novice::DrawLine(
+			static_cast<int>(p0.x),
+			static_cast<int>(p0.y),
+			static_cast<int>(p1.x),
+			static_cast<int>(p1.y),
+			color
+		);
+	}
 }
 
 Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
