@@ -33,10 +33,46 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, kWindowWidth, kWindowHeight, 0.0f, 1.0f);
 
-	Vector3 controlPoints[3] = {
-		{-0.8f,0.58f,1.0f},
-		{1.76f,1.0f,-0.3f},
-		{0.94f,-0.7f,2.3f}
+	Vector3 translates[3] = {
+		{0.2f,1.0f,0.0f},
+		{0.4f,0.0f,0.0f},
+		{0.3f,0.0f,0.0f}
+	};
+
+	Vector3 rotates[3] = {
+		{0.0f,0.0f,-6.8f},
+		{0.0f,0.0f,-1.4f},
+		{0.0f,0.0f,0.0f}
+	};
+
+	Vector3 scales[3] = {
+		{1.0f,1.0f,1.0f},
+		{1.0f,1.0f,1.0f},
+		{1.0f,1.0f,1.0f}
+	};
+
+	Matrix4x4 localMatrices[3] = {
+		MakeAffineMatrix(scales[0], rotates[0], translates[0]),
+		MakeAffineMatrix(scales[1], rotates[1], translates[1]),
+		MakeAffineMatrix(scales[2], rotates[2], translates[2])
+	};
+
+	Matrix4x4 worldMatrices[3] = {
+		localMatrices[0],
+		localMatrices[1] * localMatrices[0],
+		localMatrices[2] * localMatrices[1] * localMatrices[0]
+	};
+
+	Sphere spheres[3] = {};
+
+	for (int32_t i = 0; i < 3; ++i) {
+		spheres[i].radius = 0.05f;
+		spheres[i].center = Transform(Vector3(0.0f, 0.0f, 0.0f), worldMatrices[i]);
+	}
+
+	Segment segments[2] = {
+		{spheres[0].center, spheres[1].center - spheres[0].center},
+		{spheres[1].center, spheres[2].center - spheres[1].center}
 	};
 
 	bool isDebugCamera = true;
@@ -89,6 +125,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 
+		for (int32_t i = 0; i < 3; ++i) {
+			localMatrices[i] = MakeAffineMatrix(scales[i], rotates[i], translates[i]);
+		}
+
+		worldMatrices[0] = localMatrices[0];
+		worldMatrices[1] = localMatrices[1] * worldMatrices[0];
+		worldMatrices[2] = localMatrices[2] * worldMatrices[1];
+
+		for (int32_t i = 0; i < 3; ++i) {
+			spheres[i].center = Transform(Vector3(0.0f, 0.0f, 0.0f), worldMatrices[i]);
+		}
+
+		segments[0].origin = spheres[0].center;
+		segments[0].diff = spheres[1].center - spheres[0].center;
+		segments[1].origin = spheres[1].center;
+		segments[1].diff = spheres[2].center - spheres[1].center;
+
 		cameraMatrix = MakeAffineMatrix(cameraScale, cameraRotate, cameraPosition);
 		viewMatrix = cameraMatrix.Inverse();
 		projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
@@ -102,15 +155,44 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		Draw::DrawGrid((viewMatrix * projectionMatrix), viewportMatrix);
-		Draw::DrawBezier(controlPoints[0], controlPoints[1], controlPoints[2], (viewMatrix * projectionMatrix), viewportMatrix, BLUE);
+		Draw::DrawSphere(spheres[0], (viewMatrix * projectionMatrix), viewportMatrix, RED);
+		Draw::DrawSphere(spheres[1], (viewMatrix * projectionMatrix), viewportMatrix, GREEN);
+		Draw::DrawSphere(spheres[2], (viewMatrix * projectionMatrix), viewportMatrix, BLUE);
+		Draw::DrawSegment(segments[0], (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
+		Draw::DrawSegment(segments[1], (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
 
 		Novice::ScreenPrintf(0, 0, "DebugCamera %d", isDebugCamera);
 
 #ifdef _DEBUG
 		ImGui::Begin("Window");
-		ImGui::DragFloat3("controlPoint[0]", &controlPoints[0].x, 0.01f);
-		ImGui::DragFloat3("controlPoint[1]", &controlPoints[1].x, 0.01f);
-		ImGui::DragFloat3("controlPoint[2]", &controlPoints[2].x, 0.01f);
+		const char* items[] = { "Shoulder", "Elbow", "Hand" };
+		static int current_item = 0;
+
+		if (ImGui::BeginCombo("Node", items[current_item])) {
+			for (int i = 0; i < IM_ARRAYSIZE(items); i++) {
+				bool is_selected = (current_item == i);
+				if (ImGui::Selectable(items[i], is_selected))
+					current_item = i;
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+
+		// 選択に応じてスライダーを表示
+		if (current_item == 0) {
+			ImGui::DragFloat3("Scale", &scales[0].x, 0.01f);
+			ImGui::DragFloat3("Rotate", &rotates[0].x, 0.01f);
+			ImGui::DragFloat3("Translate", &translates[0].x, 0.01f);
+		} else if (current_item == 1) {
+			ImGui::DragFloat3("Scale", &scales[1].x, 0.01f);
+			ImGui::DragFloat3("Rotate", &rotates[1].x, 0.01f);
+			ImGui::DragFloat3("Translate", &translates[1].x, 0.01f);
+		} else if (current_item == 2) {
+			ImGui::DragFloat3("Scale", &scales[2].x, 0.01f);
+			ImGui::DragFloat3("Rotate", &rotates[2].x, 0.01f);
+			ImGui::DragFloat3("Translate", &translates[2].x, 0.01f);
+		}
 		ImGui::End();
 #endif // _DEBUG
 
