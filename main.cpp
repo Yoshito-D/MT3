@@ -35,27 +35,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	bool isDebugCamera = true;
 
-	Spring spring{};
-	spring.anchor = { 0.0f, 0.0f, 0.0f };
-	spring.naturalLength = 1.0f;
-	spring.stiffness = 100.0f;
-	spring.dampingCoefficient = 2.0f;
-
-	Ball ball{};
-	ball.position = { 1.2f, 0.0f, 0.0f };
-	ball.mass = 2.0f;
-	ball.radius = 0.05f;
-	ball.color = BLUE;
-
 	float deltaTime = 1.0f / 60.0f;
 
 	Sphere sphere{};
-	sphere.center = ball.position;
-	sphere.radius = ball.radius;
+	sphere.center = { 0.8f,0.0f,0.0f };
+	sphere.radius = 0.05f;
 
-	Segment segment{};
-	segment.origin = spring.anchor;
-	segment.diff = ball.position - spring.anchor;
+	float angularVelocity = 3.14f;
+	float angle = 0.0f;
 
 	bool isStrated = false;
 
@@ -112,23 +99,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
 
 		if (isStrated) {
-			Vector3 diff = ball.position - spring.anchor;
-			float length = diff.Length();
-			if (length != 0.0f) {
-				Vector3 direction = diff.Normalize();
-				Vector3 restPosition = spring.anchor + direction * spring.naturalLength;
-				Vector3 displacement = (ball.position - restPosition) * length;
-				Vector3 restoringForce = displacement * (-spring.stiffness);
-				Vector3 dampingForce = ball.velocity * (-spring.dampingCoefficient);
-				Vector3 force = restoringForce + dampingForce;
-				ball.acceleration = force / ball.mass;
-			}
-
-			ball.velocity += ball.acceleration * deltaTime;
-			ball.position += ball.velocity * deltaTime;
-
-			sphere.center = ball.position;
-			segment.diff = ball.position - spring.anchor;
+			angle += angularVelocity * deltaTime;
+			float radius = 0.8f;
+			sphere.center.x = std::cos(angle) * radius;
+			sphere.center.y = std::sin(angle) * radius;
 		}
 
 		///
@@ -136,8 +110,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		Draw::DrawGrid((viewMatrix * projectionMatrix), viewportMatrix);
-		Draw::DrawSphere(sphere, (viewMatrix * projectionMatrix), viewportMatrix, ball.color);
-		Draw::DrawSegment(segment, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
+		Draw::DrawSphere(sphere, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
 
 		///
 		/// ↓描画処理ここから
@@ -147,11 +120,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::Begin("Window");
 		if (ImGui::Button("Start")) {
 			isStrated = true;
-			spring.anchor = { 0.0f, 0.0f, 0.0f };
-			spring.naturalLength = 1.0f;
-			spring.stiffness = 100.0f;
-			spring.dampingCoefficient = 2.0f;
-			ball.position = { 1.2f, 0.0f, 0.0f };
 		}
 		ImGui::End();
 #endif // _DEBUG
