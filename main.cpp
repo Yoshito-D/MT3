@@ -37,22 +37,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	float deltaTime = 1.0f / 60.0f;
 
-	Pendulum pendulum{};
-	pendulum.anchor = { 0.0f, 1.0f, 0.0f };
-	pendulum.length = 0.8f;
-	pendulum.angle = 0.7f;
-	pendulum.angularVelocity = 0.0f;
-	pendulum.angularAcceleration = 0.0f;
+	ConicalPendulum conicalPendulum{};
+	conicalPendulum.anchor = { 0.0f, 1.0f, 0.0f };
+	conicalPendulum.length = 0.8f;
+	conicalPendulum.halfApexAngle = 0.7f;
+	conicalPendulum.angle = 0.0f;
+	conicalPendulum.angularVelocity = 0.0f;
 
 	Sphere sphere{};
-	sphere.center = { pendulum.anchor.x + pendulum.length * std::sin(pendulum.angle),
-		pendulum.anchor.y - pendulum.length * std::cos(pendulum.angle),
-		pendulum.anchor.z };
+	sphere.center = {
+		conicalPendulum.anchor.x + std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length * std::cos(conicalPendulum.angle),
+		conicalPendulum.anchor.y- std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length,
+		conicalPendulum.anchor.z - std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length * std::sin(conicalPendulum.angle)
+	};
 	sphere.radius = 0.05f;
 
 	Segment segment{};
-	segment.origin = pendulum.anchor;
-	segment.diff = sphere.center - pendulum.anchor;
+	segment.origin = conicalPendulum.anchor;
+	segment.diff = sphere.center - conicalPendulum.anchor;
 
 	bool isStrated = false;
 
@@ -109,16 +111,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
 
 		if (isStrated) {
-			pendulum.angularAcceleration = -9.8f / pendulum.length * std::sin(pendulum.angle);
-			pendulum.angularVelocity += pendulum.angularAcceleration * deltaTime;
-			pendulum.angle += pendulum.angularVelocity * deltaTime;
+			conicalPendulum.angularVelocity = std::sqrt(9.8f / conicalPendulum.length * std::sin(conicalPendulum.halfApexAngle));
+			conicalPendulum.angle += conicalPendulum.angularVelocity * deltaTime;
 
-			sphere.center.x = pendulum.anchor.x + pendulum.length * std::sin(pendulum.angle);
-			sphere.center.y = pendulum.anchor.y - pendulum.length * std::cos(pendulum.angle);
-			sphere.center.z = pendulum.anchor.z;
+			float radius = std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length;
+			float height = std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length;
 
-			segment.origin = pendulum.anchor;
-			segment.diff = sphere.center - pendulum.anchor;
+			sphere.center.x = conicalPendulum.anchor.x + radius * std::cos(conicalPendulum.angle);
+			sphere.center.y = conicalPendulum.anchor.y - height;
+			sphere.center.z = conicalPendulum.anchor.z - radius * std::sin(conicalPendulum.angle);
+
+			segment.origin = conicalPendulum.anchor;
+			segment.diff = sphere.center - conicalPendulum.anchor;
 		}
 
 		///
@@ -137,21 +141,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::Begin("Window");
 		if (ImGui::Button("Start")) {
 			isStrated = true;
-
-			pendulum.anchor = { 0.0f, 1.0f, 0.0f };
-			pendulum.length = 0.8f;
-			pendulum.angle = 0.7f;
-			pendulum.angularVelocity = 0.0f;
-			pendulum.angularAcceleration = 0.0f;
-
-			sphere.center = { pendulum.anchor.x + pendulum.length * std::sin(pendulum.angle),
-				pendulum.anchor.y - pendulum.length * std::cos(pendulum.angle),
-				pendulum.anchor.z };
-			sphere.radius = 0.05f;
-
-			segment.origin = pendulum.anchor;
-			segment.diff = sphere.center - pendulum.anchor;
 		}
+		ImGui::DragFloat("Length", &conicalPendulum.length, 0.01f,0.1f,2.0f);
+		ImGui::DragFloat("Half Apex Angle", &conicalPendulum.halfApexAngle, 0.01f,0.1f,2.0f);
 		ImGui::End();
 #endif // _DEBUG
 
