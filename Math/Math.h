@@ -53,6 +53,14 @@ struct Ball {
 	unsigned int color; //!< 色
 };
 
+struct Pendulum {
+	Vector3 anchor; //!< アンカー
+	float length; //!< 長さ	
+	float angle; //!< 角度
+	float angularVelocity; //!< 角速度
+	float angularAcceleration; //!< 角加速度
+};
+
 Matrix4x4 MakeTranslateMatrix(const Vector3& translate);
 Matrix4x4 MakeScaleMatrix(const Vector3& scale);
 Matrix4x4 MakeRotateXMatrix(float radian);

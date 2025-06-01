@@ -37,12 +37,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	float deltaTime = 1.0f / 60.0f;
 
+	Pendulum pendulum{};
+	pendulum.anchor = { 0.0f, 1.0f, 0.0f };
+	pendulum.length = 0.8f;
+	pendulum.angle = 0.7f;
+	pendulum.angularVelocity = 0.0f;
+	pendulum.angularAcceleration = 0.0f;
+
 	Sphere sphere{};
-	sphere.center = { 0.8f,0.0f,0.0f };
+	sphere.center = { pendulum.anchor.x + pendulum.length * std::sin(pendulum.angle),
+		pendulum.anchor.y - pendulum.length * std::cos(pendulum.angle),
+		pendulum.anchor.z };
 	sphere.radius = 0.05f;
 
-	float angularVelocity = 3.14f;
-	float angle = 0.0f;
+	Segment segment{};
+	segment.origin = pendulum.anchor;
+	segment.diff = sphere.center - pendulum.anchor;
 
 	bool isStrated = false;
 
@@ -99,10 +109,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
 
 		if (isStrated) {
-			angle += angularVelocity * deltaTime;
-			float radius = 0.8f;
-			sphere.center.x = std::cos(angle) * radius;
-			sphere.center.y = std::sin(angle) * radius;
+			pendulum.angularAcceleration = -9.8f / pendulum.length * std::sin(pendulum.angle);
+			pendulum.angularVelocity += pendulum.angularAcceleration * deltaTime;
+			pendulum.angle += pendulum.angularVelocity * deltaTime;
+
+			sphere.center.x = pendulum.anchor.x + pendulum.length * std::sin(pendulum.angle);
+			sphere.center.y = pendulum.anchor.y - pendulum.length * std::cos(pendulum.angle);
+			sphere.center.z = pendulum.anchor.z;
+
+			segment.origin = pendulum.anchor;
+			segment.diff = sphere.center - pendulum.anchor;
 		}
 
 		///
@@ -111,6 +127,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		Draw::DrawGrid((viewMatrix * projectionMatrix), viewportMatrix);
 		Draw::DrawSphere(sphere, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
+		Draw::DrawSegment(segment, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
 
 		///
 		/// ↓描画処理ここから
@@ -120,6 +137,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::Begin("Window");
 		if (ImGui::Button("Start")) {
 			isStrated = true;
+
+			pendulum.anchor = { 0.0f, 1.0f, 0.0f };
+			pendulum.length = 0.8f;
+			pendulum.angle = 0.7f;
+			pendulum.angularVelocity = 0.0f;
+			pendulum.angularAcceleration = 0.0f;
+
+			sphere.center = { pendulum.anchor.x + pendulum.length * std::sin(pendulum.angle),
+				pendulum.anchor.y - pendulum.length * std::cos(pendulum.angle),
+				pendulum.anchor.z };
+			sphere.radius = 0.05f;
+
+			segment.origin = pendulum.anchor;
+			segment.diff = sphere.center - pendulum.anchor;
 		}
 		ImGui::End();
 #endif // _DEBUG
