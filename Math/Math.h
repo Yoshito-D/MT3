@@ -37,6 +37,22 @@ struct AABB {
 	Vector3 max; //!< 最大点
 };
 
+struct Spring {
+	Vector3 anchor; //!< アンカー
+	float naturalLength; //!< 自然長
+	float stiffness; //!< 剛性
+	float dampingCoefficient; //!< 減衰係数
+};
+
+struct Ball {
+	Vector3 position; //!< 位置
+	Vector3 velocity; //!< 速度
+	Vector3 acceleration; //!< 加速度
+	float mass; //!< 質量
+	float radius; //!< 半径
+	unsigned int color; //!< 色
+};
+
 Matrix4x4 MakeTranslateMatrix(const Vector3& translate);
 Matrix4x4 MakeScaleMatrix(const Vector3& scale);
 Matrix4x4 MakeRotateXMatrix(float radian);
