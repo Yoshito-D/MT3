@@ -25,57 +25,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	char keys[256] = { 0 };
 	char preKeys[256] = { 0 };
 
-	Vector3 cameraScale = { 1.0f,1.0f,1.0f };
-	Vector3 cameraRotate = { 0.26f,0.0f,0.0f };
-	Vector3 cameraPosition = { 0.0f,2.0f,-6.5f };
-	Matrix4x4 cameraMatrix = MakeAffineMatrix(cameraScale, cameraRotate, cameraPosition);
-	Matrix4x4 viewMatrix = cameraMatrix.Inverse();
-	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
-	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, kWindowWidth, kWindowHeight, 0.0f, 1.0f);
-
-	Vector3 translates[3] = {
-		{0.2f,1.0f,0.0f},
-		{0.4f,0.0f,0.0f},
-		{0.3f,0.0f,0.0f}
-	};
-
-	Vector3 rotates[3] = {
-		{0.0f,0.0f,-6.8f},
-		{0.0f,0.0f,-1.4f},
-		{0.0f,0.0f,0.0f}
-	};
-
-	Vector3 scales[3] = {
-		{1.0f,1.0f,1.0f},
-		{1.0f,1.0f,1.0f},
-		{1.0f,1.0f,1.0f}
-	};
-
-	Matrix4x4 localMatrices[3] = {
-		MakeAffineMatrix(scales[0], rotates[0], translates[0]),
-		MakeAffineMatrix(scales[1], rotates[1], translates[1]),
-		MakeAffineMatrix(scales[2], rotates[2], translates[2])
-	};
-
-	Matrix4x4 worldMatrices[3] = {
-		localMatrices[0],
-		localMatrices[1] * localMatrices[0],
-		localMatrices[2] * localMatrices[1] * localMatrices[0]
-	};
-
-	Sphere spheres[3] = {};
-
-	for (int32_t i = 0; i < 3; ++i) {
-		spheres[i].radius = 0.05f;
-		spheres[i].center = Transform(Vector3(0.0f, 0.0f, 0.0f), worldMatrices[i]);
-	}
-
-	Segment segments[2] = {
-		{spheres[0].center, spheres[1].center - spheres[0].center},
-		{spheres[1].center, spheres[2].center - spheres[1].center}
-	};
-
-	bool isDebugCamera = true;
+	Vector3 a{ 0.2f,1.0f,0.0f };
+	Vector3 b{ 2.4f,3.1f,1.2f };
+	Vector3 c = a + b;
+	Vector3 d = a - b;
+	Vector3 e = a * 2.4f;
+	Vector3 rotate{ 0.4f,1.43f,-0.8f };
+	Matrix4x4 rotateXMatrix = MakeRotateXMatrix(rotate.x);
+	Matrix4x4 rotateYMatrix = MakeRotateYMatrix(rotate.y);
+	Matrix4x4 rotateZMatrix = MakeRotateZMatrix(rotate.z);
+	Matrix4x4 rotateMatrix = rotateXMatrix * rotateYMatrix * rotateZMatrix;
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -90,62 +49,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE]) {
-			isDebugCamera = !isDebugCamera;
-		}
-
-		if (isDebugCamera) {
-			if (Novice::IsPressMouse(2)) {
-				ImVec2 delta = ImGui::GetIO().MouseDelta;
-				if (delta.x != 0.0f || delta.y != 0.0f) {
-					float moveSpeed = 0.005f;
-
-					Vector3 forward = { cosf(cameraRotate.x) * sinf(cameraRotate.y),
-						sinf(cameraRotate.x),
-						cosf(cameraRotate.x) * cosf(cameraRotate.y)
-					};
-
-					Vector3 up = { 0.0f,1.0f,0.0f };
-					Vector3 right = up.Cross(forward).Normalize();
-
-					Vector3 move = -right * delta.x * moveSpeed + up * delta.y * moveSpeed;
-
-					cameraPosition += move;
-				}
-			}
-
-			if (Novice::IsPressMouse(1)) {
-				ImVec2 delta = ImGui::GetIO().MouseDelta;
-				if (delta.x != 0.0f || delta.y != 0.0f) {
-					float rotateSpeed = 0.001f;
-
-					cameraRotate.x += delta.y * rotateSpeed;
-					cameraRotate.y += delta.x * rotateSpeed;
-				}
-			}
-		}
-
-		for (int32_t i = 0; i < 3; ++i) {
-			localMatrices[i] = MakeAffineMatrix(scales[i], rotates[i], translates[i]);
-		}
-
-		worldMatrices[0] = localMatrices[0];
-		worldMatrices[1] = localMatrices[1] * worldMatrices[0];
-		worldMatrices[2] = localMatrices[2] * worldMatrices[1];
-
-		for (int32_t i = 0; i < 3; ++i) {
-			spheres[i].center = Transform(Vector3(0.0f, 0.0f, 0.0f), worldMatrices[i]);
-		}
-
-		segments[0].origin = spheres[0].center;
-		segments[0].diff = spheres[1].center - spheres[0].center;
-		segments[1].origin = spheres[1].center;
-		segments[1].diff = spheres[2].center - spheres[1].center;
-
-		cameraMatrix = MakeAffineMatrix(cameraScale, cameraRotate, cameraPosition);
-		viewMatrix = cameraMatrix.Inverse();
-		projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
-
 		///
 		/// ↑更新処理ここまで
 		///
@@ -154,45 +57,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓描画処理ここから
 		///
 
-		Draw::DrawGrid((viewMatrix * projectionMatrix), viewportMatrix);
-		Draw::DrawSphere(spheres[0], (viewMatrix * projectionMatrix), viewportMatrix, RED);
-		Draw::DrawSphere(spheres[1], (viewMatrix * projectionMatrix), viewportMatrix, GREEN);
-		Draw::DrawSphere(spheres[2], (viewMatrix * projectionMatrix), viewportMatrix, BLUE);
-		Draw::DrawSegment(segments[0], (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
-		Draw::DrawSegment(segments[1], (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
-
-		Novice::ScreenPrintf(0, 0, "DebugCamera %d", isDebugCamera);
-
 #ifdef _DEBUG
 		ImGui::Begin("Window");
-		const char* items[] = { "Shoulder", "Elbow", "Hand" };
-		static int current_item = 0;
-
-		if (ImGui::BeginCombo("Node", items[current_item])) {
-			for (int i = 0; i < IM_ARRAYSIZE(items); i++) {
-				bool is_selected = (current_item == i);
-				if (ImGui::Selectable(items[i], is_selected))
-					current_item = i;
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-
-		// 選択に応じてスライダーを表示
-		if (current_item == 0) {
-			ImGui::DragFloat3("Scale", &scales[0].x, 0.01f);
-			ImGui::DragFloat3("Rotate", &rotates[0].x, 0.01f);
-			ImGui::DragFloat3("Translate", &translates[0].x, 0.01f);
-		} else if (current_item == 1) {
-			ImGui::DragFloat3("Scale", &scales[1].x, 0.01f);
-			ImGui::DragFloat3("Rotate", &rotates[1].x, 0.01f);
-			ImGui::DragFloat3("Translate", &translates[1].x, 0.01f);
-		} else if (current_item == 2) {
-			ImGui::DragFloat3("Scale", &scales[2].x, 0.01f);
-			ImGui::DragFloat3("Rotate", &rotates[2].x, 0.01f);
-			ImGui::DragFloat3("Translate", &translates[2].x, 0.01f);
-		}
+		ImGui::Text("c:%f, %f, %f", c.x, c.y, c.z);
+		ImGui::Text("d:%f, %f, %f", d.x, d.y, d.z);
+		ImGui::Text("e:%f, %f, %f", e.x, e.y, e.z);
+		ImGui::Text("matrix:\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f",
+			rotateMatrix.m[0][0], rotateMatrix.m[0][1], rotateMatrix.m[0][2], rotateMatrix.m[0][3],
+			rotateMatrix.m[1][0], rotateMatrix.m[1][1], rotateMatrix.m[1][2], rotateMatrix.m[1][3],
+			rotateMatrix.m[2][0], rotateMatrix.m[2][1], rotateMatrix.m[2][2], rotateMatrix.m[2][3],
+			rotateMatrix.m[3][0], rotateMatrix.m[3][1], rotateMatrix.m[3][2], rotateMatrix.m[3][3]
+		);
 		ImGui::End();
 #endif // _DEBUG
 
