@@ -37,24 +37,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	float deltaTime = 1.0f / 60.0f;
 
-	ConicalPendulum conicalPendulum{};
-	conicalPendulum.anchor = { 0.0f, 1.0f, 0.0f };
-	conicalPendulum.length = 0.8f;
-	conicalPendulum.halfApexAngle = 0.7f;
-	conicalPendulum.angle = 0.0f;
-	conicalPendulum.angularVelocity = 0.0f;
+	Plane plane{};
+	plane.normal = Vector3(-0.2f, 0.9f, -0.3f).Normalize();
+	plane.distance = 0.0f;
+
+	Ball ball{};
+	ball.position = { 0.8f, 1.2f, 0.3f };
+	ball.radius = 0.05f;
+	ball.mass = 2.0f;
+	ball.color = WHITE;
+	ball.acceleration = { 0.0f, -9.8f, 0.0f };
 
 	Sphere sphere{};
-	sphere.center = {
-		conicalPendulum.anchor.x + std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length * std::cos(conicalPendulum.angle),
-		conicalPendulum.anchor.y- std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length,
-		conicalPendulum.anchor.z - std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length * std::sin(conicalPendulum.angle)
-	};
-	sphere.radius = 0.05f;
-
-	Segment segment{};
-	segment.origin = conicalPendulum.anchor;
-	segment.diff = sphere.center - conicalPendulum.anchor;
+	sphere.center = ball.position;
+	sphere.radius = ball.radius;
 
 	bool isStrated = false;
 
@@ -111,18 +107,36 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		projectionMatrix = MakePerspectiveFovMatrix(0.45f, kWindowWidth / kWindowHeight, 0.1f, 100.0f);
 
 		if (isStrated) {
-			conicalPendulum.angularVelocity = std::sqrt(9.8f / conicalPendulum.length * std::sin(conicalPendulum.halfApexAngle));
-			conicalPendulum.angle += conicalPendulum.angularVelocity * deltaTime;
+			Vector3 prevPosition = ball.position;
 
-			float radius = std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length;
-			float height = std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length;
+			ball.velocity += ball.acceleration * deltaTime;
+			ball.position += ball.velocity * deltaTime;
 
-			sphere.center.x = conicalPendulum.anchor.x + radius * std::cos(conicalPendulum.angle);
-			sphere.center.y = conicalPendulum.anchor.y - height;
-			sphere.center.z = conicalPendulum.anchor.z - radius * std::sin(conicalPendulum.angle);
+			Capsule capsule;
+			capsule.segment.origin = prevPosition;
+			capsule.segment.diff = ball.position - prevPosition;
+			capsule.radius = ball.radius;
 
-			segment.origin = conicalPendulum.anchor;
-			segment.diff = sphere.center - conicalPendulum.anchor;
+			if (Collision::IsCollision(capsule, plane)) {
+				float e = 0.8f;
+				Vector3 reflected = Reflect(ball.velocity, plane.normal);
+				Vector3 projectToNormal = reflected.Project(plane.normal);
+				Vector3 movingDirection = reflected - projectToNormal;
+				ball.velocity = projectToNormal * e + movingDirection;
+
+				float distToPlane = plane.SignedDistance(ball.position);
+				float penetration = ball.radius - distToPlane;
+				if (penetration > 0.0f) {
+					ball.position += plane.normal * penetration;
+				}
+			}
+
+			sphere.center = ball.position;
+
+			if (ball.position.y <= -2.0f) {
+				ball.position = { 0.8f, 3.0f, 0.9f };
+				ball.velocity = { 0.0f, 0.0f, 0.0f };
+			}
 		}
 
 		///
@@ -130,8 +144,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		Draw::DrawGrid((viewMatrix * projectionMatrix), viewportMatrix);
+		Draw::DrawPlane(plane, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
 		Draw::DrawSphere(sphere, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
-		Draw::DrawSegment(segment, (viewMatrix * projectionMatrix), viewportMatrix, WHITE);
 
 		///
 		/// ↓描画処理ここから
@@ -142,8 +156,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (ImGui::Button("Start")) {
 			isStrated = true;
 		}
-		ImGui::DragFloat("Length", &conicalPendulum.length, 0.01f,0.1f,2.0f);
-		ImGui::DragFloat("Half Apex Angle", &conicalPendulum.halfApexAngle, 0.01f,0.1f,2.0f);
 		ImGui::End();
 #endif // _DEBUG
 
