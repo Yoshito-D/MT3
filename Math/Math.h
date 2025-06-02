@@ -16,6 +16,10 @@ struct Line {
 struct Plane {
 	Vector3 normal; //!< 法線
 	float distance; //!< 距離
+
+	float SignedDistance(const Vector3& point) const {
+		return normal.Dot(point) - distance;
+	}
 };
 
 struct Ray {
@@ -69,6 +73,11 @@ struct ConicalPendulum {
 	float angularVelocity; //!< 角速度
 };
 
+struct Capsule {
+	Segment segment; //!< 線分
+	float radius; //!< 半径
+};
+
 Matrix4x4 MakeTranslateMatrix(const Vector3& translate);
 Matrix4x4 MakeScaleMatrix(const Vector3& scale);
 Matrix4x4 MakeRotateXMatrix(float radian);
@@ -83,6 +92,8 @@ Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float botto
 Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
 
 Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t);
+
+Vector3 Reflect(const Vector3& input, const Vector3& normal);
 
 namespace Draw {
 	void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
@@ -109,4 +120,5 @@ namespace Collision {
 	bool isCollision(const AABB& aabb, const Segment& segment);
 	bool isCollision(const AABB& aabb, const Ray& ray);
 	bool isCollision(const AABB& aabb, const Line& line);
+	bool IsCollision(const Capsule& capsule, const Plane& plane);
 }

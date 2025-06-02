@@ -125,6 +125,11 @@ Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) {
 	return result;
 }
 
+Vector3 Reflect(const Vector3& input, const Vector3& normal) {
+	Vector3 result = input - normal * (2.0f * input.Dot(normal));
+	return result;
+}
+
 void Draw::DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
 	const float kGridHalfWidth = 2.0f;
 	const uint32_t kSubdivision = 10;
@@ -747,5 +752,15 @@ bool Collision::isCollision(const AABB& aabb, const Line& line) {
 	}
 
 	return true;
+}
+
+bool Collision::IsCollision(const Capsule& capsule, const Plane& plane) {
+	Vector3 a = capsule.segment.origin;
+	Vector3 b = a + capsule.segment.diff;
+
+	float da = plane.SignedDistance(a);
+	float db = plane.SignedDistance(b);
+
+	return (da * db <= 0.0f) || (fabsf(da) < capsule.radius) || (fabsf(db) < capsule.radius);
 }
 
